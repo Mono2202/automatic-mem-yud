@@ -42,6 +42,7 @@ def get_google_creds():
         creds = tools.run_flow(flow, store)
     return creds
 
+
 def get_google_forms_service(credentials):
     return discovery.build(
         "forms",
@@ -50,12 +51,14 @@ def get_google_forms_service(credentials):
         discoveryServiceUrl=DISCOVERY_DOC,
     )
 
+
 def get_google_drive_service(credentials):
     return discovery.build(
         "drive",
         "v3",
         credentials=credentials
     )
+
 
 def create_form(google_forms_service, title: str):
     form = {
@@ -66,17 +69,20 @@ def create_form(google_forms_service, title: str):
     result = google_forms_service.forms().create(body=form).execute()
     return result["formId"]
 
+
 def rename_form(google_drive_service, form_id: str, name: str):
     google_drive_service.files().update(
         fileId=form_id,
         body={"name": name}
     ).execute()    
 
+
 def get_daily_form_title():
     now = datetime.now(TIMEZONE)
     return f'מ"י יום {HEBREW_DAYS[(now.weekday() + 1) % 7]} {now.day}.{now.month}'
 
-def initialize_form(google_forms_service, form_id: str):
+
+def daily_form_prologue(google_forms_service, form_id: str):
     update = {
         "requests": [
             {
@@ -127,6 +133,7 @@ def initialize_form(google_forms_service, form_id: str):
     }
 
     google_forms_service.forms().batchUpdate(formId=form_id, body=update).execute()
+
 
 def create_question(google_forms_service, form_id: str, title: str, index: int):
     update = {
@@ -184,6 +191,7 @@ def create_question(google_forms_service, form_id: str, title: str, index: int):
 
     google_forms_service.forms().batchUpdate(formId=form_id, body=update).execute()
     
+
 def update_daily_form(google_forms_service, form_id: str):
     daily_events = ""
     with open("daily_events.txt", "r", encoding="utf-8") as file:
@@ -193,7 +201,47 @@ def update_daily_form(google_forms_service, form_id: str):
     for event in daily_events:
         create_question(google_forms_service, form_id, event, index)
         index += 3
+    return index
 
+
+def daily_form_epilogue(google_forms_service, form_id: str, index: int):
+    update = {
+        "requests": [
+            {
+            "createItem": {
+                    "item": {
+                        "title": "משהו שלקחתי/למדתי מהיום",
+                        "questionItem": {
+                            "question": {
+                                "required": True,
+                                "textQuestion": {
+                                    "paragraph": False
+                                }
+                            }
+                        }
+                    },
+                    "location": {"index": index}
+                },
+            },
+            {
+                "createItem": {
+                    "item": {
+                        "title": "נקודות נוספות",
+                        "questionItem": {
+                            "question": {
+                                "textQuestion": {
+                                    "paragraph": False
+                                }
+                            }
+                        },
+                    },
+                    "location": {"index": index + 1}
+                },
+            }
+        ]
+    }
+
+    google_forms_service.forms().batchUpdate(formId=form_id, body=update).execute()
 
 
 def main():
@@ -204,8 +252,10 @@ def main():
     form_title = get_daily_form_title()
     form_id = create_form(google_forms_service, form_title)
     rename_form(google_drive_service, form_id, form_title)
-    initialize_form(google_forms_service, form_id)
-    update_daily_form(google_forms_service, form_id)
+
+    daily_form_prologue(google_forms_service, form_id)
+    last_index = update_daily_form(google_forms_service, form_id)
+    daily_form_epilogue(google_forms_service, form_id, last_index)
 
 if __name__ == "__main__":
     main()
