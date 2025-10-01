@@ -53,3 +53,12 @@ class Form:
             "requests": requests
         }
         self._google_forms_service.forms().batchUpdate(formId=self._form_id, body=metadata).execute()
+
+    def add_permissions(self, emails, role="reader"):
+        for email in emails:
+            body = {"type": "user", "role": role, "emailAddress": email}
+            self._google_drive_service.permissions().create(
+                fileId=self._form_id,
+                body=body,
+                sendNotificationEmail=True
+            ).execute()

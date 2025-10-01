@@ -28,6 +28,14 @@ class DailyForm(Form):
     6. נוספה שאלה חדשה - "משהו שלקחתי/למדתי מהיום" המטרה היא לקבל תמונה יותר טובה על מה היה לכם משמעותי באותו היום\u202C"""
     PAKALON_MISHUV_FILE_ID = "1T6yEF90wd0RZjPbJC0ZT8EFTx8baLg86"
     DAILY_EVENTS_FILE_PATH = "daily_events.txt"
+    KAHADIM_EMAILS = [
+        "Naftaliwieder@gmail.com",
+        "talmor.rotem@gmail.com",
+        "noa.paz2004@gmail.com",
+        "maya539539@gmail.com",
+        "oribiran26@gmail.com",
+        "agur.hadas@gmail.com"
+    ]
 
     def __init__(self):
         now = datetime.now(self.TIMEZONE)
@@ -43,6 +51,7 @@ class DailyForm(Form):
             self.daily_event_question(event)
 
         self.daily_form_epilogue()
+        self.add_permissions(self.KAHADIM_EMAILS, "writer")
 
     def get_daily_events(self):
         self._daily_events = []
